@@ -270,10 +270,8 @@ export const jobsApi = {
     request<{ message: string }>(`/jobs/${id}/unmask`, { method: 'POST' }),
   delete: (id: string) =>
     request<void>(`/jobs/${id}`, { method: 'DELETE' }),
-  query: (id: string, mask?: boolean) => {
-    const q = mask !== undefined ? `?mask=${mask}` : '';
-    return request<DynamicQueryResponse>(`/jobs/${id}/query${q}`);
-  },
+  query: (id: string, mask?: boolean) =>
+    request<DynamicQueryResponse>(`/jobs/${id}/query${mask !== undefined ? `?mask=${mask}` : ''}`),
   share: (id: string, data: ShareJobRequest) =>
     request<{ message: string }>(`/jobs/${id}/share`, {
       method: 'POST',
