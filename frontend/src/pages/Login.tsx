@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { fetchApiMeta } from '../services/api';
+import { RESOLVED_API_BASE } from '../services/api';
 import { jwtDecode } from 'jwt-decode';
 import { Loader2, Shield } from 'lucide-react';
 import type { ToastType } from '../App';
@@ -22,8 +22,10 @@ export default function Login({ addToast }: Props) {
 
   useEffect(() => {
     const initGoogle = async () => {
-      const meta = await fetchApiMeta();
-      if (!meta) {
+      try {
+        const res = await fetch(`${RESOLVED_API_BASE}/health`);
+        if (!res.ok) addToast('Backend is not responding', 'error');
+      } catch {
         addToast('Backend is not responding', 'error');
       }
 
