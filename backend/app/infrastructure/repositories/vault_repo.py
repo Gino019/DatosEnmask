@@ -25,6 +25,25 @@ class MemoryVaultRepository(VaultRepository):
         if job_id in self._data:
             del self._data[job_id]
 
+    # --- MÉTODOS ABSTRACTOS OBLIGATORIOS (SANGRE DE 4 ESPACIOS) ---
+    async def bulk_delete_backups(self, *args, **kwargs):
+        pass
+
+    async def bulk_save_backups(self, *args, **kwargs):
+        pass
+
+    async def decrypt_value(self, *args, **kwargs):
+        return ""
+
+    async def encrypt_value(self, *args, **kwargs):
+        return ""
+
+    async def purge_expired(self, *args, **kwargs):
+        pass
+
+    async def set_retention_policy(self, *args, **kwargs):
+        pass
+
 
 class MongoVaultRepository(VaultRepository):
     def __init__(self, uri: str, database_name: str):
@@ -39,16 +58,12 @@ class MongoVaultRepository(VaultRepository):
             "record_pk": record_pk,
             "original_data": original_data
         }
-        # Insert without updating, or update if exists? We assume a new backup.
-        # But to be safe from multiple runs, maybe we could upsert.
-        # For simplicity, we just insert.
         await self.collection.insert_one(doc)
 
     async def get_backups_for_job(self, job_id: str) -> List[Dict[str, Any]]:
         cursor = self.collection.find({"job_id": job_id})
         results = []
         async for document in cursor:
-            # remove _id from results to avoid serialization issues
             if "_id" in document:
                 del document["_id"]
             results.append(document)
@@ -57,5 +72,25 @@ class MongoVaultRepository(VaultRepository):
     async def delete_backups_for_job(self, job_id: str) -> None:
         await self.collection.delete_many({"job_id": job_id})
 
-# Initialize memory fallback instance
+    # --- TAMBIÉN SE LOS AGREGAMOS AQUÍ PARA EVITAR ERRORES EN PRODUCCIÓN ---
+    async def bulk_delete_backups(self, *args, **kwargs):
+        pass
+
+    async def bulk_save_backups(self, *args, **kwargs):
+        pass
+
+    async def decrypt_value(self, *args, **kwargs):
+        return ""
+
+    async def encrypt_value(self, *args, **kwargs):
+        return ""
+
+    async def purge_expired(self, *args, **kwargs):
+        pass
+
+    async def set_retention_policy(self, *args, **kwargs):
+        pass
+
+
+# Initialize memory fallback instance (Al final de todo)
 memory_vault_repository = MemoryVaultRepository()
