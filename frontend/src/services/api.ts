@@ -120,40 +120,42 @@ async function request<T>(
   const url = `${BASE}${path}`;
   let lastError: Error | null = null;
 
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const res = await fetch(url, {
-        ...init,
-        headers,
-        signal: controller?.signal,
-      });
+  try {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const res = await fetch(url, {
+          ...init,
+          headers,
+          signal: controller?.signal,
+        });
 
-      if (res.status === 401 && attempt === 0) {
-        const refreshed = await refreshTokenIfNeeded();
-        if (refreshed) {
-          headers.Authorization = `Bearer ${getStoredToken()}`;
+        if (res.status === 401 && attempt === 0) {
+          const refreshed = await refreshTokenIfNeeded();
+          if (refreshed) {
+            headers.Authorization = `Bearer ${getStoredToken()}`;
+            continue;
+          }
+          clearStoredToken();
+          window.location.href = '/login';
+          throw new Error('Session expired');
+        }
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw parseError(res, body);
+        }
+
+        if (res.status === 204) return undefined as unknown as T;
+        return res.json();
+      } catch (e) {
+        lastError = e as Error;
+        if ((e as Error).name === 'AbortError') throw e;
+        if (attempt < retries && !(e as ApiError).status) {
+          await new Promise(r => setTimeout(r, RETRY_DELAY * (attempt + 1)));
           continue;
         }
-        clearStoredToken();
-        window.location.href = '/login';
-        throw new Error('Session expired');
+        throw e;
       }
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw parseError(res, body);
-      }
-
-      if (res.status === 204) return undefined as unknown as T;
-      return res.json();
-    } catch (e) {
-      lastError = e as Error;
-      if ((e as Error).name === 'AbortError') throw e;
-      if (attempt < retries && !(e as ApiError).status) {
-        await new Promise(r => setTimeout(r, RETRY_DELAY * (attempt + 1)));
-        continue;
-      }
-      throw e;
     }
   } finally {
     if (requestId) activeControllers.delete(requestId);
